@@ -201,7 +201,7 @@ modify_nginx(){
 web_camouflage(){
     ##请注意 这里和LNMP脚本的默认路径冲突，千万不要在安装了LNMP的环境下使用本脚本，否则后果自负
     rm -rf /home/wwwroot && mkdir -p /home/wwwroot && cd /home/wwwroot
-    git clone https://github.com/eyebluecn/levis.git
+    git clone https://github.com/rokoo/sportportal.git
     judge "web 站点伪装"   
 }
 v2ray_install(){
@@ -352,7 +352,7 @@ acme(){
 }
 v2ray_conf_add(){
     cd /etc/v2ray
-    wget https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/master/tls/config.json -O config.json
+    wget https://raw.githubusercontent.com/rokoo/V2Ray_ws-tls_bash_onekey/master/tls/config.json -O config.json
 modify_port_UUID
 judge "V2ray 配置修改"
 }
@@ -434,7 +434,7 @@ vmess_qr_config(){
     cat >/etc/v2ray/vmess_qr.json <<-EOF
     {
         "v": "2",
-        "ps": "wulabing_${domain}",
+        "ps": "v2_${domain}",
         "add": "${domain}",
         "port": "${port}",
         "id": "${UUID}",
