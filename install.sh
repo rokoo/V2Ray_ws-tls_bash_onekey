@@ -4,7 +4,7 @@
 #	System Request:Debian 9+/Ubuntu 18.04+/Centos 7+
 #	Author:	wulabing
 #	Dscription: V2ray ws+tls onekey 
-#	Version: 5.0
+#	Version: 5.1
 #	email:wulabing@admin.com
 #	Official document: www.v2ray.com
 #====================================================
@@ -26,7 +26,7 @@ v2ray_conf_dir="/etc/v2ray"
 nginx_conf_dir="/etc/nginx/conf/conf.d"
 v2ray_conf="${v2ray_conf_dir}/config.json"
 nginx_conf="${nginx_conf_dir}/v2ray.conf"
-nginx_dir=$"/etc/nginx"
+nginx_dir="/etc/nginx"
 nginx_openssl_src="/usr/local/src"
 nginx_version="1.16.1"
 openssl_version="1.1.1d"
@@ -45,12 +45,12 @@ check_system(){
     elif [[ "${ID}" == "debian" && ${VERSION_ID} -ge 8 ]];then
         echo -e "${OK} ${GreenBG} 当前系统为 Debian ${VERSION_ID} ${VERSION} ${Font}"
         INS="apt"
-        INS update
+        $INS update
         ## 添加 Nginx apt源
     elif [[ "${ID}" == "ubuntu" && `echo "${VERSION_ID}" | cut -d '.' -f1` -ge 16 ]];then
         echo -e "${OK} ${GreenBG} 当前系统为 Ubuntu ${VERSION_ID} ${UBUNTU_CODENAME} ${Font}"
         INS="apt"
-        INS update
+        $INS update
     else
         echo -e "${Error} ${RedBG} 当前系统为 ${ID} ${VERSION_ID} 不在支持的系统列表内，安装中断 ${Font}"
         exit 1
@@ -305,7 +305,7 @@ domain_check(){
         echo -e "${OK} ${GreenBG} 域名dns解析IP  与 本机IP 匹配 ${Font}"
         sleep 2
     else
-        echo -e "${Error} ${RedBG} 请确保域名添加了正确的 A 记录，否则将无法正常使用 V2ray（y/n)"
+        echo -e "${Error} ${RedBG} 请确保域名添加了正确的 A 记录，否则将无法正常使用 V2ray"
         echo -e "${Error} ${RedBG} 域名dns解析IP 与 本机IP 不匹配 是否继续安装？（y/n）${Font}" && read install
         case $install in
         [yY][eE][sS]|[yY])
@@ -393,11 +393,10 @@ judge "Nginx 配置修改"
 
 start_process_systemd(){
     ### nginx服务在安装完成后会自动启动。需要通过restart或reload重新加载配置
-    ${nginx_dir}/sbin/nginx
+    systemctl restart nginx
     judge "Nginx 启动"
 
-    sed -i '/nginx/d' /etc/rc.local
-	echo "${nginx_dir}/sbin/nginx" >> /etc/rc.local
+    systemctl enable nginx
     judge "设置 Nginx 开机自启"
 
     systemctl restart v2ray
@@ -408,24 +407,24 @@ start_process_systemd(){
 }
 
 #debian 系 9 10 适配
-rc_local_initialization(){
-    if [[ -f /etc/rc.local ]];then
-        chmod +x /etc/rc.local
-    else
-        touch /etc/rc.local && chmod +x /etc/rc.local
-        echo "#!/bin/bash" >> /etc/rc.local
-        systemctl start rc-local
-    fi
-
-    judge "rc.local 配置"
-}
+#rc_local_initialization(){
+#    if [[ -f /etc/rc.local ]];then
+#        chmod +x /etc/rc.local
+#    else
+#        touch /etc/rc.local && chmod +x /etc/rc.local
+#        echo "#!/bin/bash" >> /etc/rc.local
+#        systemctl start rc-local
+#    fi
+#
+#    judge "rc.local 配置"
+#}
 acme_cron_update(){
     if [[ "${ID}" == "centos" ]];then
-        sed -i "/acme.sh/c 0 0 * * 0 /etc/nginx/sbin/nginx -s stop  && \"/root/.acme.sh\"/acme.sh --cron --home \"/root/.acme.sh\" \
-        > /dev/null && /etc/nginx/sbin/nginx" /var/spool/cron/root
+        sed -i "/acme.sh/c 0 0 * * 0 systemctl stop nginx && \"/root/.acme.sh\"/acme.sh --cron --home \"/root/.acme.sh\" \
+        > /dev/null && systemctl start nginx" /var/spool/cron/root
     else
-        sed -i "/acme.sh/c 0 0 * * 0 /etc/nginx/sbin/nginx -s stop && \"/root/.acme.sh\"/acme.sh --cron --home \"/root/.acme.sh\" \
-        > /dev/null && /etc/nginx/sbin/nginx" /var/spool/cron/crontabs/root
+        sed -i "/acme.sh/c 0 0 * * 0 systemctl stop nginx && \"/root/.acme.sh\"/acme.sh --cron --home \"/root/.acme.sh\" \
+        > /dev/null && systemctl start nginx" /var/spool/cron/crontabs/root
     fi
     judge "cron 计划任务更新"
 }
@@ -484,6 +483,27 @@ ssl_judge_and_install(){
         acme
     fi
 }
+nginx_systemd(){
+    cat>/lib/systemd/system/nginx.service<<EOF
+[Unit]
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/etc/nginx/logs/nginx.pid
+ExecStartPre=/etc/nginx/sbin/nginx -t
+ExecStart=/etc/nginx/sbin/nginx -c ${nginx_dir}/conf/nginx.conf
+ExecReload=/etc/nginx/sbin/nginx -s reload
+ExecStop=/bin/kill -s QUIT \$MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+judge "Nginx systemd ServerFile 添加"
+}
 main(){
     is_root
     check_system
@@ -502,9 +522,8 @@ main(){
 
     #将证书生成放在最后，尽量避免多次尝试脚本从而造成的多次证书申请
     ssl_judge_and_install
-    
+    nginx_systemd
     show_information
-    rc_local_initialization
     start_process_systemd
     acme_cron_update
 }
