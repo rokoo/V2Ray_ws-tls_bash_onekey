@@ -423,7 +423,7 @@ acme(){
 }
 v2ray_conf_add_tls(){
     cd /etc/v2ray
-    wget https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/master/tls/config.json -O config.json
+    wget https://raw.githubusercontent.com/rokoo/V2Ray_ws-tls_bash_onekey/master/tls/config.json -O config.json
     modify_path
     modify_alterid
     modify_inbound_port
@@ -431,7 +431,7 @@ v2ray_conf_add_tls(){
 }
 v2ray_conf_add_h2(){
     cd /etc/v2ray
-    wget https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/master/http2/config.json -O config.json
+    wget https://raw.githubusercontent.com/rokoo/V2Ray_ws-tls_bash_onekey/master/http2/config.json -O config.json
     modify_path
     modify_alterid
     modify_inbound_port
@@ -533,7 +533,7 @@ vmess_qr_config_tls_ws(){
     cat > $v2ray_qr_config_file <<-EOF
 {
   "v": "2",
-  "ps": "wulabing_${domain}",
+  "ps": "rokoo_${domain}",
   "add": "${domain}",
   "port": "${port}",
   "id": "${UUID}",
@@ -551,7 +551,7 @@ vmess_qr_config_h2(){
     cat > $v2ray_qr_config_file <<-EOF
 {
   "v": "2",
-  "ps": "wulabing_${domain}",
+  "ps": "rokoo_${domain}",
   "add": "${domain}",
   "port": "${port}",
   "id": "${UUID}",
